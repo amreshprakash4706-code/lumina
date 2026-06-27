@@ -1,9 +1,6 @@
-
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateUser } from '@/lib/auth'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import { prisma } from '@/lib/prisma'
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -15,40 +12,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, password } = loginSchema.parse(body)
 
-    // 1. Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+    const { user, token } = await authenticateUser(email, password)
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
-        { status: 401 }
-      )
-    }
-
-    // 2. Verify password
-    const isValid = await bcrypt.compare(password, user.password)
-
-    if (!isValid) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
-        { status: 401 }
-      )
-    }
-
-    // 3. Create token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
-    )
-
-    // 4. Response
     const response = NextResponse.json({
       success: true,
       user: {
@@ -60,11 +25,12 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Set HTTP-only cookie for security
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     })
 
