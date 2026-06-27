@@ -64,7 +64,7 @@ model User {
   notifications Notification[]
   blogPosts     BlogPost[] @relation("AuthorPosts")
   valuations    Valuation[]
-
+mortgageCalculations MortgageCalculation[]
   accounts      Account[] // For OAuth
 }
 

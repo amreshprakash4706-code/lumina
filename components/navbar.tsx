@@ -15,6 +15,7 @@ export function Navbar() {
   // In production, this would come from Zustand store or session
   const user = {
     name: 'Alex Rivera',
+	email: 'alex@lumina.com',
     role: 'USER',
     avatar: null,
   }
